@@ -68,7 +68,7 @@
 # print(super_market_p_list)
 
 
-# Task 3
+# # Task 3
 
 days_of_the_week = ("Sunday", "Monday","Tuesday", "Wednesday","Thursday", "Friday")
 
@@ -81,11 +81,10 @@ day_3 = input("Enter day three activity: ")
 
 act_for_days = [day_1, day_2, day_3]
 
-days_and_activ_dict = {days_of_the_week : act_for_days in zip(days_of_the_week, act_for_days)
-}
+days_and_activ_dict = {days_of_the_week : act_for_days for days_of_the_week, act_for_days in zip(days_of_the_week, act_for_days)}
 
 print(days_and_activ_dict)
 
 
-# days_and_activ_dict = dict(zip(days_of_the_week, act_for_days))
+# days_and_activ_dict = dict(zip(days_of_the_week[:3], act_for_days))
 # print(days_and _activ_dict)

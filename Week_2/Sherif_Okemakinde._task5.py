@@ -1,5 +1,19 @@
 
 
+student_bio = { 
+    "name": name
+    "age": age
+    "gender": gender
+    "courses": courses
+}
+
+
+
+print(student_bio)
+
+
+
+
 # Task 1
 
 '''' **Task1:  Create and Display**
