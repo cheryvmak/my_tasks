@@ -1,0 +1,15 @@
+{
+  "name": "Adeyemi",
+  "age": 22,
+  "courses": [
+    "Python",
+    "Data Science",
+    "Web Development"
+  ],
+  "grades": {
+    "Python": "A",
+    "Data Science": "B+",
+    "Web Development": "A-"
+  },
+  "is_graduated": false
+}
