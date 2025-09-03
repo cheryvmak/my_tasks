@@ -1,1 +1,0 @@
- ["Oyingbo", "cloth", "shoe", "bag]
