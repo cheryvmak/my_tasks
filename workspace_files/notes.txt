@@ -1,4 +1,0 @@
-My To do List
- - Revise Python file handling
- - Practise error handling within a function - Practise JSON & CSV
- - Build a small project

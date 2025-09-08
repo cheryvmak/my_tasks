@@ -310,31 +310,3 @@ child = Child()
 print(child.father_trait())
 print(child.mother_trait())
 
-
-# Nigerian School Management System
-from abc import ABC, abstractmethod
-
-class SchoolMember(ABC):
-    def __ini__(self,  name, id_number):
-
-        self._name = name     # Encapsulation  - protected attribute
-        self._id_number = id_number  # Encapsulation - protected attribute
-
-    @abstractmethod
-    def daily_activity(self):     # Abstraction - must be implemented
-        pass
-
-    def get_info(self):
-        return f"Name: {self._name}, ID: {self._id_number}"
-    
-    # Inheritance - Student inherits from SchoolMember
-class Student(SchoolMember):
-    def __init__(self, name, id_number, class_level):
-        super().__init__(name, id_number)  # Inheritance
-        self.__grades = []                 # Encapsualtion - private
-
-
-    def daily_activty(self):               # Abstraction - implementation
-        return f"{self._name} attends classes and studies"
-    
-    
