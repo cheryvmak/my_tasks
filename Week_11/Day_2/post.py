@@ -12,7 +12,8 @@ class BasicAPI(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(payload).encode())
 
     def do_POST(self):
-        content_size = int(self.headers["COntent-Length"], 0)
+        content_size = int(self.headers.get("COntent-Length", 0))
+        self.rfile.read(content_size)
         parsed_data = self.rfile.read(content_size)
         post_data = json.loads(parsed_data)
         data.append(post_data) #saving to a database
