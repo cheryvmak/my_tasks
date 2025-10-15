@@ -23,7 +23,7 @@ class BasicAPI(BaseHTTPRequestHandler):
         self.send_data(data)
 
 def run():
-        HTTPServer(('localhost', 9000), BasicAPI).serve_forever()
+        HTTPServer(('localhost', 5000), BasicAPI).serve_forever()
 
 print("Application is running")
 run()
