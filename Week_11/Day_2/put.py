@@ -1,3 +1,4 @@
+
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 
@@ -35,7 +36,6 @@ def run():
     httpd.serve_forever()
 print("The server is running!")
 run()
-
 
 
 
