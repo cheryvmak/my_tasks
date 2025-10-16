@@ -4,7 +4,7 @@ import json
 data = [
     {
         "name":"yemi",
-        "track":"AI Engi"
+        "track":"AI Engr"
     }
 ]
 
@@ -23,17 +23,18 @@ class BasicAPI(BaseHTTPRequestHandler):
         patch_data = json.loads(parsed_data)
         if data:
             data[0].update(patch_data)
-            self.send_data([   
-                "message":"Data Edited",,
+            self.send_data({   
+                "message":"Data Edited",
                 "data":data[0]
-            ], status=201)
+            }, status=201)
         else:
-            self.send_data([
+            self.send_data({
                 "message":"No data to patch"
-            ], status=400)
+            }, status=400)
 
 def run():
-        HTTPServer((''))    
+        HTTPServer(('0.0.0.0', 5000), BasicAPI).serve_forever()
+print("The server is running!")
 
 
 
