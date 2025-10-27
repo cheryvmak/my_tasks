@@ -64,10 +64,16 @@ from sqlalchemy import text
 import os
 from dotenv import load_dotenv
 import uvicorn
+from middleware import create_token
+
+
+
 
 load_dotenv()
 
 app=FastAPI(title="Simple App", version="1.0.0")
+
+token_time = int(os.getenv("token_time"))
 
 class simple(BaseModel):
     name: str = Field(..., example= "Sherif Oke")
@@ -126,6 +132,13 @@ def login(input: LoginRequired):
 
         if not verified_password:
             raise HTTPException(status_code=404, detail =" invalid email or password")
+        
+        create_token(details = {
+            "email": result.email,
+            "userType": result.userType
+                      
+        },expiry= token_time)
+        
         return {
             "message": "Login Successful"
         }
