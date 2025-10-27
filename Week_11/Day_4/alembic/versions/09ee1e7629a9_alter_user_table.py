@@ -26,3 +26,60 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade schema."""
     pass
+
+
+
+
+# def upgrade() -> None:
+#     op.add_column('users', sa.Column('gender', sa.String(20), nullable=True))
+# def downgrade() -> None:
+#     op.drop_column('users', 'gender')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
