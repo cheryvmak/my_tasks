@@ -1,0 +1,1405 @@
+for vscode
+
+pylance
+python debugger
+python
+
+tick the box for path....for both python and vscode during installation
+
+
+
+DROP TABLE Authors---to delete the table
+Control / to comment a block of code
+-- Insert authors. csv files into the table author this can be done using terminal
+-- \COPY Books FROM 'C:\Users\USER\Desktop\New folder (5)\Sql_dataset\books.csv' DELIMITER ',' CSV HEADER;
+
+SELECT version();  --- to know the current version of the sql 
+\l -- To view all the database in psql terminal
+\c database name   ---- To connect to the desired database
+\dt --- To see all the tables in the database
+\d tablename --- to view all the column,datatype in the table
+ALTER TABLE tablename
+ALTER COLUMN column name 
+
+
+\COPY libraryStaff FROM 'C:\Users\USER\Desktop\New folder (5)\Sql_dataset\librarystaff.csv' DELIMITER ',' CSV HEADER NULL 'NULL';
+This converts any "NULL" (without quotes in the file) into a true SQL NULL
+
+
+Using powershell type this code to extract all the insert into sql query enter into database table 
+
+& "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" `
+  --dbname=library_db `
+  --username=postgres `
+  --data-only `
+  --inserts `
+  --table=authors `
+  --table=members `
+  --table=bookorders `
+  --table=books `
+  --table=borrowhistory `
+  --table=departments `
+  --table=librarystaff `
+  > "C:\Users\USER\Desktop\load_data.sql"
+
+
+
+SELECT * FROM public.librarystaff;
+
+--- List all books published after 2015 along with their authors' names
+
+
+SELECT 
+    b.title AS book_title,
+    a.author_name,
+    b.date_of_publication FROM Books b
+JOIN Authors a
+ON 
+b.Author_Id = a.Author_Id
+WHERE 
+b.date_of_publication > '2015-12-31'
+ORDER BY 
+b.date_of_publication;
+
+
+--- Find all members who joined in the last 2 years and have a 'Premium' membership.
+
+SELECT 
+member_name,type_of_membership,date_of_membership
+FROM Members
+WHERE type_of_membership = 'Premium'
+AND date_of_membership >= (SELECT MAX(date_of_membership) - 
+INTERVAL '2 years' FROM Members)
+ORDER BY 
+date_of_membership DESC;
+
+-- Display the total number of books written by each author, ordered by count (descending).
+
+SELECT 
+    a.author_name,
+    COUNT(b.book_id) AS total_books
+FROM 
+    Authors a
+JOIN 
+    Books b
+ON 
+    b.Author_Id = a.Author_Id
+GROUP BY 
+    a.author_name
+ORDER BY 
+    total_books DESC;
+
+
+-- Show all currently borrowed books (books with no return date) along with the member's name and borrow date.
+
+SELECT 
+    b.title AS book_title,
+    m.member_name,
+    bh.Borrow_Date
+FROM 
+    BorrowHistory bh
+JOIN 
+    Books b
+ON 
+    bh.Book_id = b.Book_id
+JOIN 
+    Members m
+ON 
+    bh.Member_id = m.Member_id
+WHERE 
+    bh.Return_Date IS NULL
+ORDER BY 
+    bh.Borrow_Date DESC;
+
+
+-- List all library staff members working in the 'Circulation' department.
+
+SELECT 
+    s.Staff_id,
+    s.s_Name,
+    d.Department_Name  
+FROM 
+    LibraryStaff s
+JOIN 
+    Departments d ON s.Dept_Id = d.Dept_Id
+WHERE 
+    d.Department_Name= 'Circulation'
+ORDER BY 
+    s.s_Name;
+
+
+-- Calculate the total cost of all book orders placed in 2024, grouped by fulfillment status.
+
+SELECT 
+    FulFillment_Status,
+    SUM(o_Cost) AS total_order_cost
+FROM 
+    BookOrders
+WHERE 
+    EXTRACT(YEAR FROM Order_Date) = 2024
+GROUP BY 
+    FulFillment_Status
+ORDER BY 
+    total_order_cost DESC;
+
+
+-- Find the top 5 most borrowed books along with the number of times each has been borrowed.
+
+SELECT 
+    b.title AS book_title,
+    COUNT(bh.Book_Id) AS times_borrowed
+FROM 
+    BorrowHistory bh
+JOIN 
+    Books b 
+ON 
+    bh.Book_Id = b.Book_Id
+GROUP BY 
+    b.title
+ORDER BY 
+    times_borrowed DESC
+LIMIT 5;
+
+
+-- Identify members who have never borrowed a book
+SELECT 
+    m.Member_Id,
+    m.Member_Name
+FROM 
+    Members m
+LEFT JOIN 
+    BorrowHistory bh 
+ON 
+    m.Member_Id = bh.Member_Id
+WHERE 
+    bh.Member_Id IS NULL
+ORDER BY 
+    m.Member_Name;
+
+
+---Show the average number of available copies per genre.
+
+SELECT 
+    Genre,
+	AVG(Available_Copies) AS Avg_Available_Copies
+	-- ROUND(AVG(Available_Copies), 2) AS Avg_Available_Copies
+FROM 
+    Books
+GROUP BY 
+    Genre
+ORDER BY 
+    Avg_Available_Copies DESC;
+
+
+-- List all books that are currently overdue (borrowed more than 30 days ago with no return date).
+
+SELECT 
+    b.Book_Id,
+    b.title,
+    m.Member_Name,
+    bh.Borrow_Date,
+    CURRENT_DATE - bh.Borrow_Date AS days_borrowed
+FROM 
+    BorrowHistory bh
+JOIN 
+    Books b ON bh.Book_Id = b.Book_Id
+JOIN 
+    Members m ON bh.Member_Id = m.Member_Id
+WHERE 
+    bh.Return_Date IS NULL
+    AND bh.Borrow_Date < CURRENT_DATE - INTERVAL '30 days'
+ORDER BY 
+    bh.Borrow_Date ASC;
+
+
+
+
+To connect Postgresql Database to vscode
+open vscode and locate the extension icon then click + to add connection add port, database name,username,password.
+
+Hostname: localhost
+PostgreSQL User: postgres
+Password: 
+port number  : 5432
+ssl connection : Standard Connection
+
+Right click your Database to activate and create new query then right click on run query
+
+Right click on the table and select  top 1000 or ight click to see new query then type your query.
+
+pip install psycopg2-binary in the terminal then run this code in .ipynb file to connect to the PostgreSQL database using `SQLAlchemy`.
+
+If Your Password Has @, /, or : in it. Replace the character with
+@	%40
+/	%2F
+:	%3A
+inside the .ipynb put the code below
+
+import pandas as pd
+from sqlalchemy import create_engine
+
+# Create database connection
+engine = create_engine('postgresql://postgres:chery%40NG1@localhost:5432/library_db')
+
+# Example: Load data
+df_books = pd.read_sql("SELECT * FROM Books", engine)
+df_authors = pd.read_sql("SELECT * FROM Authors", engine)
+
+print(df_books)
+
+To create a Database in Postgress
+create database if not exists library_db
+
+Using Sql query
+
+DROP TABLE Authors---to delete the table
+Control / to comment a block of code
+
+COPY tablename FROM '/path/to/file/sample_data.csv' DELIMITER ',';
+
+COPY Authors FROM 'C:\Users\USER\Desktop\New folder (5)\Sql_dataset\authors.csv' DELIMITER ',';
+
+
+Each person to create two table,
+
+
+-- CREATE DATABASE library_db;
+
+
+-- CREATE TABLE Authors (
+--     Author_id BIGINT NOT NULL PRIMARY KEY,
+-- 	Author_name VARCHAR(255) NOT NULL,
+--     Country_of_origin VARCHAR(255),
+--     Number_of_Books_Written INT NOT NULL
+--   );
+
+-- CREATE TYPE member_status AS ENUM('Active','inactive','suspended');
+-- CREATE TYPE Gender AS ENUM('Male','Female');
+
+-- CREATE TABLE Members (
+--     Member_id INT NOT NULL PRIMARY KEY,
+-- 	Member_Name VARCHAR(255),
+--     Gender Gender,
+--     Email_Address VARCHAR(255),
+-- 	PhoneNumber VARCHAR(15),
+-- 	Address VARCHAR(255),
+-- 	Age INT,
+-- 	Type_of_Membership VARCHAR(255),
+-- 	Date_of_Membership DATE,
+-- 	status member_status
+--   );
+
+-- CREATE TABLE Books (
+--     Book_id INT NOT NULL PRIMARY KEY,
+-- 	Title VARCHAR(255),
+--     Author_Id INT NOT NULL REFERENCES Authors(Author_Id),
+--     Genre VARCHAR(255),
+-- 	Date_of_Publication DATE,
+-- 	Publisher VARCHAR(255),
+-- 	ISBN VARCHAR(255),
+-- 	B_Language VARCHAR(255),
+-- 	Available_Copies INT,
+-- 	AgeRating VARCHAR(255)
+-- 	);
+
+-- CREATE TABLE Departments (
+-- Dept_Id INT NOT NULL PRIMARY KEY,
+-- Department_Name VARCHAR(255),
+-- Manager_Name VARCHAR(255)
+-- );
+
+-- CREATE TYPE Gender AS ENUM('Male','Female');
+-- CREATE TABLE LibraryStaff(
+-- Staff_Id INT NOT NULL PRIMARY KEY,
+-- s_Name VARCHAR(255),
+-- Job_Title VARCHAR(255),
+-- Dept_Id INT NOT NULL REFERENCES Department (Dept_Id),
+-- Gender Gender,
+-- Address VARCHAR(256),
+-- Phone_Number VARCHAR(15),
+-- Hire_Date DATE,
+-- Manager_Id INT  
+-- );
+
+-- CREATE TABLE BorrowHistory(
+-- Borrow_Id INT NOT NULL PRIMARY KEY,
+-- Book_Id INT NOT NULL REFERENCES Books(Book_Id),
+-- Member_Id INT NOT NULL REFERENCES Members(Member_Id),
+-- Borrow_Date DATE,
+-- Return_Date DATE
+-- );
+
+-- CREATE TYPE FulFillment_Status AS ENUM('Fulfilled','Pending','Processing'
+-- CREATE TABLE BookOrders(
+-- Order_Id INT PRIMARY KEY,
+-- Order_Date DATE,
+-- Book_Id INT NOT NULL REFERENCES Books(Book_Id),
+-- Cost DECIMAL(10,2),
+-- Quantity INT,
+-- Supply_Date DATE,
+-- FulFillment_Status FulFillment_Status,
+-- Supplier_Name VARCHAR(255)
+-- );
+
+-- To view all tables created earlier
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public';
+
+
+
+===========MY SQL============================== 
+
+Creating database and table in the database with values inside the table using vscode
+=====================================================================================
+=============
+database.py
+=============
+
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+from pymysql.constants import CLIENT
+import os 
+
+load_dotenv()
+
+
+# Build DB URL from environment variables
+db_url = f'mysql+pymysql://{os.getenv("dbuser")}:{os.getenv("dbpassword")}@{os.getenv("dbhost")}:{os.getenv("dbport")}/{os.getenv("dbname")}'
+
+# Create engine with support for multiple statements
+engine = create_engine(db_url, connect_args={"client_flag": CLIENT.MULTI_STATEMENTS})
+
+
+# Create session
+Session = sessionmaker(bind=engine)
+db = Session()
+
+# Define all create table queries
+create_table_query = text("""
+CREATE TABLE IF NOT EXISTS users (
+    userid INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL
+);
+"""),
+
+
+create_table_query = text("""
+CREATE TABLE IF NOT EXISTS courses (
+    courseid INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(100) NOT NULL,
+    level VARCHAR(100) NOT NULL
+);
+"""),
+
+create_table_query = text("""
+CREATE TABLE IF NOT EXISTS enrollments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    userid INT,
+    courseid INT,
+    FOREIGN KEY (userid) REFERENCES user(userid),
+    FOREIGN KEY (courseid) REFERENCES courses(courseid)
+);
+""")
+
+db.execute(create_table_query)
+print("Tables have been created successfully.")
+
+
+
+===========================================
+Why You Need Alembic
+===========================================
+
+When you build apps, your database tables evolve over time:
+You might need to:
+
+===   Add a new column
+
+===   Rename a table
+
+===   Create a new relationship (foreign key)
+
+===   Drop an unused table
+
+Without Alembic, you’d have to write raw SQL manually like:
+
+
+
+pip install sqlalchemy alembic pymysql
+
+==============
+user.py
+==============
+import bcrypt
+from database import db
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy import text
+import os
+from dotenv import load_dotenv
+import uvicorn
+
+load_dotenv()
+
+app=FastAPI(title="Simple App", version="1.0.0")
+class simple(BaseModel):
+    name: str = Field(..., example= "Sherif Oke")
+    email: str= Field(..., example= "oke@gmail.com")
+    password: str=Field(..., example= "ade121")
+
+
+@app.get("/", description="This endpoint just return a welcome message")
+def root():
+    return {"Message": "Welcome to my FastAPI App"}
+
+@app.post("/signup")
+def signUp(input:simple):
+    try:
+        duplicate_query=text(""" SELECT * FROM users WHERE email=:email """)
+        existing=db.execute(duplicate_query,{"email":input.email})
+        if existing:
+            print("Email already exist")
+            # raise HTTPException(status_code=400, detail="Email already exist")
+        query= text("""
+            INSERT INTO users (name, email, password)
+        VALUES(:name, :email, :password);
+        """)
+
+        # hashing password
+        salt=bcrypt.gensalt()
+        hashedpassword=bcrypt.hashpw(input.password.encode('utf-8'), salt)
+        print(hashedpassword)
+
+        # mapping data
+        data= {"name":input.name, "email":input.email, "password":hashedpassword}
+        db.execute(query,data)
+        db.commit()
+        return {"Message": "User created sucessfuly", "data":{"name":input.name, "email":input.email}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=e)
+    
+if __name__=="__main__":
+     uvicorn.run(app,host=os.getenv("host"), port=int(os.getenv("port")))
+
+
+==========
+.env
+==========
+dbuser = root
+dbpassword = chery%40NG35
+dbhost = localhost
+dbport = 3306
+dbname = backend_db
+dburl = mysql+pymysql://root:chery%%40NG35@localhost:3306/backend_db
+
+=========
+env.py
+========
+from logging.config import fileConfig
+
+from sqlalchemy import engine_from_config
+from sqlalchemy import pool
+
+from alembic import context
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+config = context.config
+dburl = os.getenv('dburl')
+config.set_main_option('sqlalchemy.url', dburl)
+# Interpret the config file for Python logging.
+# This line sets up loggers basically.
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+# add your model's MetaData object here
+# for 'autogenerate' support
+# from myapp import mymodel
+# target_metadata = mymodel.Base.metadata
+target_metadata = None
+
+# other values from the config, defined by the needs of env.py,
+# can be acquired:
+# my_important_option = config.get_main_option("my_important_option")
+# ... etc.
+
+
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode.
+
+    This configures the context with just a URL
+    and not an Engine, though an Engine is acceptable
+    here as well.  By skipping the Engine creation
+    we don't even need a DBAPI to be available.
+
+    Calls to context.execute() here emit the given string to the
+    script output.
+
+    """
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode.
+
+    In this scenario we need to create an Engine
+    and associate a connection with the context.
+
+    """
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, target_metadata=target_metadata
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+
+
+=======================================
+to create user_table.py inside alembic/version
+=======================================
+alembic init alembic
+alembic revision -m "user_table" 
+alembic upgrade head
+then use SELECT * FROM backend_db.alembic_version; to check it in mysql workbench
+
+alembic merge -m "merge heads" 315f817b08a7 7d9279148205 incase you have two heads
+
+============================
+to drop column using alembic
+============================
+alembic revision -m "drop gender column from users"
+alembic upgrade head
+run this DESC users; inside workbench to verify
+
+============================
+to add column gender using alembic
+============================
+Open the new file (something like b3c5d6_add_gender_enum_column_to_users.py)
+and replace the functions with this:
+
+def upgrade() -> None:
+    op.add_column(
+        'users',
+        sa.Column('gender', sa.Enum('Male', 'Female', name='gender_enum'), nullable=True)
+    )
+
+
+def downgrade() -> None:
+    op.drop_column('users', 'gender')
+    op.execute('DROP TYPE gender_enum')
+
+then 
+
+alembic upgrade head
+
+
+
+
+============
+put.py
+============
+
+
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
+
+
+data=[]
+
+
+class BasicAPI(BaseHTTPRequestHandler):
+    def send_data(self, payload, status=200):
+        self.send_response(status)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps(payload).encode())
+
+
+    def do_PUT(self):
+        content_size = int(self.headers.get('Content-Length', 0))
+        parsed_data = self.rfile.read(content_size)
+        put_data = json.loads(parsed_data)
+        update_name = put_data.get("name")
+        for entry in data:
+            if entry.get("name") == update_name:
+                entry.update(put_data)
+                break
+        else:
+            data.append(put_data)
+        self.send_data([
+            {"message": "Data updated successfully"},
+            {"updated_data": put_data}
+        ], status=200)
+def run():
+    server_address = ('', 5000)
+    httpd = HTTPServer(server_address, BasicAPI)
+    print('Starting server on port 5000...')
+    httpd.serve_forever()
+print("The server is running!")
+run()
+
+=========
+post
+=========
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
+
+
+data = []
+
+class BasicAPI(BaseHTTPRequestHandler):
+    def send_data(self, payload, status = 201):
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(payload).encode())
+
+    def do_POST(self):
+        content_size = int(self.headers.get("Content-Length", 0))
+        parsed_data = self.rfile.read(content_size)
+        post_data = json.loads(parsed_data)
+        data.append(post_data) #saving to a database
+
+        self.send_data({
+            "Message":"Data Received",
+            "data": post_data
+        })
+
+def run():
+        HTTPServer(('localhost', 5000), BasicAPI).serve_forever()
+
+print("Application is running")
+run()
+
+
+=======
+patch
+=======
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
+
+data = [
+    {
+        "name":"yemi",
+        "track":"AI Engr"
+    }
+]
+
+
+class BasicAPI(BaseHTTPRequestHandler):
+    def send_data(self, data, status = 201):
+        self.send_response(status)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode())
+
+    def do_PATCH(self):
+        content_size = int(self.headers.get('Content-Length',0))
+        parsed_data = self.rfile.read(content_size)
+
+        patch_data = json.loads(parsed_data)
+        if data:
+            data[0].update(patch_data)
+            self.send_data({   
+                "message":"Data Edited",
+                "data":data[0]
+            }, status=201)
+        else:
+            self.send_data({
+                "message":"No data to patch"
+            }, status=400)
+
+def run():
+        HTTPServer(('0.0.0.0', 5000), BasicAPI).serve_forever()
+print("Application is running!")
+run()
+
+========
+get.py
+========
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
+
+
+data = [
+    {
+
+        "name": "Yemi",
+        "track": "AI Engineer"
+
+    }
+
+]
+
+class BasicAPI(BaseHTTPRequestHandler):
+    def send_data(self, data, status = 200):
+        self.send_response(status)
+        self.send_header("content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode())
+
+    def do_GET(self):
+        self.send_data(data)
+
+def run():
+        HTTPServer(('localhost', 5000), BasicAPI).serve_forever()
+
+print("Application is running")
+run()
+
+
+==========
+delete.py
+==========
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
+
+data=[]
+
+class BasicAPI(BaseHTTPRequestHandler):
+    def send_data(self, payload, status=200):
+        self.send_response(status)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps(payload).encode())
+    def do_DELETE(self):
+        content_size = int(self.headers.get('Content-Length', 0))
+        parsed_data = self.rfile.read(content_size)
+        delete_data = json.loads(parsed_data)
+        delete_name = delete_data.get("name")
+        for entry in data:
+            if entry.get("name") == delete_name:
+                data.remove(entry)
+                break
+        self.send_data([
+            {"message": "Data deleted successfully"},
+            {"deleted_data": delete_data}
+        ], status=404)
+def run():
+    server_address = ('', 5000)
+    httpd = HTTPServer(server_address, BasicAPI)
+    print('Starting server on port 5000...')
+    httpd.serve_forever()
+print("Delete message abeg!")
+run()
+
+
+============
+middleware.py
+==============
+import jwt
+from dotenv import load_dotenv
+
+import os
+import datetime
+
+load_dotenv()
+
+secret_key = os.get_env("secret key")
+
+def create_token(details, expiry):
+    expiry = datetime.now() + expiry
+
+    details.update({"exp": expiry})
+
+    encoded_jwt = jwt.encode(details, secret_key)
+
+    return encoded_jwt
+
+
+
+=============
+datab.py
+==============
+
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+import os 
+
+load_dotenv()
+
+
+#b_url = dialect+driver://dbuser;dbpassword;dbhost;dbport;dbname
+db_url = f'mysql+pymysql://{os.getenv("dbuser")}:{os.getenv("dbpassword")}@{os.getenv("dbhost")}:{os.getenv("dbport")}/{os.getenv("dbname")}'
+
+
+engine = create_engine(db_url)
+
+session = sessionmaker(bind=engine)
+
+db = session()
+
+query = text("select * from users")
+
+user = db.execute(query).fetchall()
+print(user)
+
+
+==========
+FastAPI
+==========
+=========
+app.py
+========
+
+
+from fastapi import FastAPI
+from pydantic import BaseModel,Field
+from dotenv import load_dotenv
+import uvicorn
+import os   
+
+load_dotenv()
+
+app = FastAPI(title="Simple FastAPI App", version="1.0.0")
+data =[{"name": "Sam Larry", "age": 20, "track": "AI Developer"},
+       {"name": "Bahuballi", "age": 21, "track": "Backend Developer"},
+       {"name": "John Doe", "age": 22, "track": "Frontend Developer"}]
+
+
+class Item(BaseModel):
+    name: str = Field(..., example="Perpetual")
+    age: int =  Field(..., example=25)
+    track: str = Field(..., example="Fullstack Developer")
+
+@app.get("/", description="This endpoint just returns a welcome message")
+def root():
+    return {"Message": "Welcome to my FastAPI Application"}
+
+
+@app.get("/get-data")
+def get_data():
+    return data
+
+@app.post("/create-data")
+def create_data(req:Item):
+    data.append(req.dict())
+    return {"Message": "Data Received", "Data": data}
+
+@app.put('/update-data/{id}')
+def update_data(id: int, req: Item):
+    data[id] = req.dict()
+    print(data)
+    return {"Message": "Data updated", "Data": data}
+
+@app.patch('/modify-data/{id}')
+def modify_data(id: int, req: Item):
+    data[1] = req.dict() 
+    print(data)
+    return {"Message": "Data modified", "Data": data}
+
+@app.delete('/delete-data{id}')
+def delete_data(id: int, req: Item):
+    data.remove(req.dict())
+    return {"Message": "Data deleted", "Data": data}
+# write an endpoint to patch and delete entries from the data var
+
+
+if __name__ == "__main__":
+    print(os.getenv("host"))
+    print(os.getenv("port"))
+    
+    uvicorn.run(app, host=os.getenv("host"), port=int(os.getenv("port")))
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- When Importing the data into ssms, i encountered some data errors, so i decided to clean them
+update movies_aqz.dbo.actor
+set last_update = replace(last_update,'"','')  -- to remove unwanted inverted comma in author table
+
+UPDATE Movies_Aqz.dbo.address
+SET address_id = CAST(address_id AS NUMERIC); -- the address_id was imported as text, so i decided to change it to numeric so,
+														--i can use the joins perfectly without errors
+
+EXEC sp_rename 'Movies_Aqz.dbo.advisor.["last_name"]', 'last_name', 'COLUMN';      -- to change column name that has unwanted characters
+--In the advisor table, i saw some errors in the column names with quotation marks, so i decided to remove them for data integrity 
+
+--Question 1 : Managers name at each store with full address at each property
+
+select a.address as Address,a.district as District, b.city as City, c.country as Country,    
+	s.first_name + ' ' + s.last_name AS Managers_name 
+from Movies_Aqz.dbo.address as a
+join Movies_Aqz.dbo.city as b
+		on a.city_id = b.city_id
+join Movies_Aqz.dbo.country as c
+		on c.country_id = b.country_id
+CROSS JOIN
+    Movies_Aqz.dbo.staff AS s;
+
+ -- Question 2 complete
+ select  inv.inventory_id,fil.title, inv.store_id, fil.rating, fil.rental_rate,fil.replacement_cost        
+ from Movies_Aqz.dbo.film as fil
+ inner join Movies_Aqz.dbo.inventory as inv
+		on fil.film_id = inv.film_id    
+
+-- Question 3: The Question says how many inventory items is available with each rating at the store
+ select a.store_id , b.rating , count(distinct a.inventory_id) as total_merch        
+ from Movies_Aqz.dbo.inventory as a
+ join Movies_Aqz.dbo.film as b
+		on a.film_id = b.film_id
+group by a.store_id,b.rating    
+
+
+-- Question 4: No of films, average replacement cost, total replacement cost sliced by store and category
+select inv.store_id , cate.category_id,         
+		count (film.title) as No_of_films ,  
+		avg(film.replacement_cost) as Avg_replacement_cost,
+		sum(film.replacement_cost) as Total_replacement_cost
+		
+FROM Movies_Aqz.dbo.film as film
+inner join Movies_Aqz.dbo.film_category as cate
+		on film.film_id = cate.category_id
+inner join Movies_Aqz.dbo.inventory as inv
+		on inv.film_id = cate.film_id
+group by cate.category_id , inv.store_id
+order by inv.store_id ,cate.category_id  desc
+
+-- Question 5: Provide a list of all the customer,store they go to, whether active or not and their full address
+select cut.first_name,cut.last_name,adre.address,cut.active,adre.address,city.city , cont.country 
+from Movies_aqz.dbo.customer as cut
+inner join Movies_aqz.dbo.address as adre        
+		on cut.address_id = adre.address_id				-- Added a join 
+inner join Movies_aqz.dbo.city as city
+		on adre.city_id = city.city_id
+inner join Movies_aqz.dbo.country as cont
+		on cont.country_id = city.country_id 
+
+-- Question 6: List of customers name, their total lifetime rentals, and the sum of payment collected from them
+select coh.first_name, coh.last_name,        
+		(select SUM(CONVERT(NUMERIC(10,2), amount)) as total_pmyt
+		from Movies_aqz.dbo.payment 
+		where coh.customer_id = Movies_aqz.dbo.payment.customer_id) as total_sum,   --a subquery to select the sum of all payment made by customers
+		(select count(inventory_id)
+		FROM movies_aqz.dbo.rental
+		where coh.customer_id = Movies_aqz.dbo.rental.customer_id) as total_rental    --a subquery to select the sum of all payment made by customers
+from Movies_Aqz.dbo.customer as coh
+order by total_sum desc 
+
+-- Question 7: In this Question, i decided to be creative. I didnt find any column that could join the Advisor table and the Investor Table,
+--so i decided to create a new column named "person_type" in both table and joined each of them with union
+Alter table Movies_Aqz.dbo.advisor
+add person_type varchar(100);
+UPDATE Movies_Aqz.dbo.advisor
+SET person_type = 'Advisor'
+
+Alter table Movies_Aqz.dbo.investor
+add person_type varchar(100);
+UPDATE Movies_Aqz.dbo.investor
+SET person_type = 'Investor'
+
+
+select first_name+' '+last_name as name,
+		case when investor_id = 1 then (select company_name
+											from Movies_Aqz.dbo.investor
+											where investor_id = 1)
+		when investor_id = 2 then (select company_name
+											from Movies_Aqz.dbo.investor
+											where investor_id = 2)	
+		when investor_id = 3 then (select company_name
+											from Movies_Aqz.dbo.investor
+											where investor_id = 3)
+		else '' end as Company_n , person_type -- Person type is from the table i created with the alter statement
+from Movies_Aqz.dbo.investor
+union
+select first_name+' '+last_name , 
+		case when advisor_id = 1 then 'No_company'
+		when advisor_id = 2 then 'No_company'	
+		when advisor_id = 3 then 'No_company'
+		when advisor_id = 4 then 'No_company'
+		else '' end as Company_n
+		,person_type
+from Movies_Aqz.dbo.advisor  
+
+--Question 8: we're interested in how well you have covered the most awarded actors, of all the actors with three types of award,
+--for what % of them do we carry a film? how about actors with two types awards? same questions. finally, how about actors with one award?
+SELECT                                 
+    awards_count,
+    COUNT(DISTINCT actor_id) AS total_actors,
+    COUNT(DISTINCT CASE WHEN No_of_film > 0 THEN actor_id END) AS actors_with_films,
+    COUNT(DISTINCT CASE WHEN No_of_film > 0 THEN actor_id END) * 100.0 / COUNT(DISTINCT actor_id) AS percentage_with_films
+FROM (
+    SELECT
+        a.actor_id,
+        (SELECT COUNT(DISTINCT film_id)
+         FROM Movies_Aqz.dbo.film_actor AS b
+         WHERE b.actor_id = a.actor_id) AS No_of_film,
+        CASE
+            WHEN awards LIKE '%,%,%' THEN 'Three Awards'
+            WHEN awards LIKE '%,%' THEN 'Two Awards'
+            ELSE 'One Award'
+        END AS awards_count
+    FROM
+        Movies_Aqz.dbo.actor_award AS a
+) AS subquery
+GROUP BY
+    awards_count;
+
+
+
+
+
+
+
+
+
+
+
+-- To create database
+CREATE DATABASE library_db;
+
+-- Right-click your target database → Query Tool. to use the schema
+CREATE TABLE Authors (
+    Author_id INT PRIMARY KEY,
+	Author_name VARCHAR(255) NOT NULL,
+    Country_of_origin VARCHAR(255),
+    Number_of_Books_Written INT
+  );
+
+
+CREATE TYPE member_status AS ENUM('Active','suspended');
+CREATE TYPE Gender AS ENUM('Male','Female');
+CREATE TABLE Members (
+    Member_id INT NOT NULL PRIMARY KEY,
+	Member_Name VARCHAR(255),
+    Gender Gender,
+    Email_Address VARCHAR(255),
+	PhoneNumber VARCHAR(15),
+	Address VARCHAR(255),
+	Age INT,
+	Type_of_Membership VARCHAR(255),
+	Date_of_Membership DATE,
+	status member_status
+  );
+
+CREATE TABLE Books (
+    Book_id INT NOT NULL PRIMARY KEY,
+	Title VARCHAR(255),
+    Author_Id INT NOT NULL REFERENCES Authors(Author_Id),
+    Genre VARCHAR(255),
+	Date_of_Publication DATE,
+	Publisher VARCHAR(255),
+	ISBN VARCHAR(255),
+	B_Language VARCHAR(255),
+	Available_Copies INT,
+	AgeRating VARCHAR(255)
+	);
+
+CREATE TABLE Departments (
+Dept_Id INT NOT NULL PRIMARY KEY,
+Department_Name VARCHAR(255),
+Manager_Name VARCHAR(255)
+);
+
+-- CREATE TYPE Gender AS ENUM('Male','Female');
+CREATE TABLE LibraryStaff(
+Staff_Id INT NOT NULL PRIMARY KEY,
+s_Name VARCHAR(255),
+Job_Title VARCHAR(255),
+Dept_Id INT NOT NULL REFERENCES Departments(Dept_Id),
+Gender Gender,
+Address VARCHAR(256),
+Phone_Number VARCHAR(15),
+Hire_Date DATE,
+Manager_Id INT  
+);
+
+CREATE TABLE BorrowHistory(
+Borrow_Id INT NOT NULL PRIMARY KEY,
+Book_Id INT NOT NULL REFERENCES Books(Book_Id),
+Member_Id INT NOT NULL REFERENCES Members(Member_Id),
+Borrow_Date DATE,
+Return_Date DATE
+);
+
+CREATE TYPE FulFillment_Status AS ENUM('Pending','Completed','Cancelled');
+CREATE TABLE BookOrders(
+Order_Id INT PRIMARY KEY,
+Order_Date DATE,
+Book_Id INT NOT NULL REFERENCES Books(Book_Id),
+Cost DECIMAL(10,2),
+Quantity INT,
+Supply_Date DATE,
+FulFillment_Status FulFillment_Status,
+Supplier_Name VARCHAR(255)
+);
+
+-- To view all tables created earlier
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public';
+
+
+SELECT * FROM public.authors
+ORDER BY author_id ASC 
+
+
+
+
+
