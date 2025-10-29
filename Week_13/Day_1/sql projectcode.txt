@@ -376,37 +376,38 @@ engine = create_engine(db_url, connect_args={"client_flag": CLIENT.MULTI_STATEME
 Session = sessionmaker(bind=engine)
 db = Session()
 
+
 # Define all create table queries
 create_table_query = text("""
 CREATE TABLE IF NOT EXISTS users (
-    userid INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    password VARCHAR(255) NOT NULL
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    password VARCHAR(100) NOT NULL
 );
-"""),
+                          
 
-
-create_table_query = text("""
 CREATE TABLE IF NOT EXISTS courses (
-    courseid INT AUTO_INCREMENT PRIMARY KEY,
+    course_id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(100) NOT NULL,
     level VARCHAR(100) NOT NULL
 );
-"""),
 
-create_table_query = text("""
+
 CREATE TABLE IF NOT EXISTS enrollments (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    userid INT,
-    courseid INT,
-    FOREIGN KEY (userid) REFERENCES user(userid),
-    FOREIGN KEY (courseid) REFERENCES courses(courseid)
+    enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    course_id INT,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (course_id) REFERENCES courses(course_id)
 );
+                          
 """)
 
 db.execute(create_table_query)
 print("Tables have been created successfully.")
+
+
 
 
 
@@ -434,67 +435,188 @@ pip install sqlalchemy alembic pymysql
 ==============
 user.py
 ==============
-import bcrypt
 from database import db
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException,Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 import os
 from dotenv import load_dotenv
 import uvicorn
+import bcrypt
+from middleware import create_token, verify_token
 
 load_dotenv()
 
 app=FastAPI(title="Simple App", version="1.0.0")
-class simple(BaseModel):
+
+token_time = int(os.getenv("token_time"))
+
+# model for signup 
+class RegDetails(BaseModel):
     name: str = Field(..., example= "Sherif Oke")
     email: str= Field(..., example= "oke@gmail.com")
     password: str=Field(..., example= "ade121")
+    userType: str = Field(..., example="student")
+    gender: str = Field(..., example="male" )
 
 
 @app.get("/", description="This endpoint just return a welcome message")
 def root():
     return {"Message": "Welcome to my FastAPI App"}
 
+
 @app.post("/signup")
-def signUp(input:simple):
+def signUp(input:RegDetails):
     try:
-        duplicate_query=text(""" SELECT * FROM users WHERE email=:email """)
-        existing=db.execute(duplicate_query,{"email":input.email})
+        duplicate_query=text("""
+            SELECT * FROM users
+            WHERE email=:email
+                            """)
+        
+        existing = db.execute(duplicate_query,{"email": input.email})
         if existing:
             print("Email already exist")
-            # raise HTTPException(status_code=400, detail="Email already exist")
+
         query= text("""
-            INSERT INTO users (name, email, password)
-        VALUES(:name, :email, :password);
+            INSERT INTO users (name, email, password, userType,gender)
+            VALUES(:name, :email, :password, :userType,gender)
         """)
 
         # hashing password
-        salt=bcrypt.gensalt()
-        hashedpassword=bcrypt.hashpw(input.password.encode('utf-8'), salt)
-        print(hashedpassword)
+        salt = bcrypt.gensalt()
+        hashedpassword = bcrypt.hashpw(input.password.encode('utf-8'), salt)
+        #print(hashedpassword)
 
         # mapping data
-        data= {"name":input.name, "email":input.email, "password":hashedpassword}
-        db.execute(query,data)
+        db.execute(query, {"name": input.name, "email": input.email, "password": hashedpassword, "userType": input.userType, "gender": input.gender})
+        #data= {"name":input.name, "email":input.email, "password":hashedpassword}
+        #db.execute(query,data)
+
         db.commit()
-        return {"Message": "User created sucessfuly", "data":{"name":input.name, "email":input.email}}
+        return {"Message": "User created sucessfuly",
+                "data": {"name": input.name, "email": input.email, "userType": input.userType,"gender": input.gender}}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=e)
+        raise HTTPException(status_code=500, detail = str(e))
+    
+
+class LoginRequest(BaseModel):
+    email: str = Field(..., example="sam@email.com")
+    password: str = Field(..., example= "sam123")
+
+@app.post("/login")
+def login(input: LoginRequest):
+    try:
+        query = text("""
+         SELECT * FROM users WHERE email = :email
+""")
+        result = db.execute(query, {"email": input.email}).fetchone()
+        if not result:
+            raise HTTPException(status_code=404, detail = "invalid email or password")
+        verified_password = bcrypt.checkpw(input.password.encode("utf-8"), result.password.encode("utf-8"))
+        if not verified_password:
+            raise HTTPException(status_code=404, detail =" invalid email or password")
+        
+        encoded_token = create_token(details = {
+            "user_id": result.user_id,
+            "email": result.email,
+            "userType": result.userType
+        },expiry = token_time)
+
+        return {
+            "message": "Login Successful",
+            "token": encoded_token,
+            "UserType": result.userType
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail = str(e))
+    
+class courseRequest(BaseModel):
+    title: str = Field(..., example="Backend Course")
+    level: str = Field(..., example="Beginner")
+
+@app.post("/courses")
+def addcourses(input: courseRequest, user_data = Depends(verify_token)):
+    try:
+        print(user_data)
+        if user_data["userType"].lower() != "admin":
+        #if user_data["userType"].strip().lower() != "admin":
+            raise HTTPException(status_code=401, detail="You are not authorized to add a course")
+        
+        query = text("""
+            INSERT INTO courses (title, level)
+            VALUES(:title, :level)
+""")
+        db.execute(query, {"title": input.title, "level":input.level})
+        db.commit()
+        return {
+            "message": "Course added successfully",
+            "data": {
+                "title": input.title,
+                "level": input.level
+                
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+class EnrollRequest(BaseModel):
+    course_id: int = Field(..., example=1)
+
+@app.post("/enroll")
+def enrollcourses(input: EnrollRequest, user_data = Depends(verify_token)):
+    try:
+        print(user_data)
+        if user_data["userType"] != "student":
+            raise HTTPException(status_code=401, detail="You are not authorized to enroll to a course")
+        
+        # Check if user already enrolled
+        check_query = text("""
+            SELECT * FROM enrollments
+            WHERE user_id = :user_id AND course_id = :course_id
+        """)
+
+        existing = db.execute(check_query, {
+            "user_id": user_data["user_id"],
+            "course_id": input.course_id
+        }).fetchone()
+        if existing:
+            raise HTTPException(status_code=400, detail="Already enrolled in this course")
+        query = text("""
+            INSERT INTO enrollments (user_id , course_id)
+            VALUES (:user_id, :course_id)
+        """)
+        db.execute(query, {"user_id": user_data["user_id"], "course_id": input.course_id})
+        db.commit()
+        return {
+            "message": "Course added successfully",
+            "data": {"user_id": user_data["user_id"], "course_id": input.course_id}
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
     
 if __name__=="__main__":
      uvicorn.run(app,host=os.getenv("host"), port=int(os.getenv("port")))
 
-
 ==========
 .env
 ==========
+port = 5000
+host = 127.0.0.1
+
+
 dbuser = root
 dbpassword = chery%40NG35
 dbhost = localhost
 dbport = 3306
 dbname = backend_db
-dburl = mysql+pymysql://root:chery%%40NG35@localhost:3306/backend_db
+dburl =mysql+pymysql://root:chery%%40NG35@localhost/backend_db
+secret_key =backend
+token_time = 30
+
 
 =========
 env.py
@@ -583,6 +705,91 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+from logging.config import fileConfig
+
+from sqlalchemy import engine_from_config
+from sqlalchemy import pool
+
+from alembic import context
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+config = context.config
+dburl = os.getenv('dburl')
+config.set_main_option('sqlalchemy.url', dburl)
+# Interpret the config file for Python logging.
+# This line sets up loggers basically.
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+# add your model's MetaData object here
+# for 'autogenerate' support
+# from myapp import mymodel
+# target_metadata = mymodel.Base.metadata
+target_metadata = None
+
+# other values from the config, defined by the needs of env.py,
+# can be acquired:
+# my_important_option = config.get_main_option("my_important_option")
+# ... etc.
+
+
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode.
+
+    This configures the context with just a URL
+    and not an Engine, though an Engine is acceptable
+    here as well.  By skipping the Engine creation
+    we don't even need a DBAPI to be available.
+
+    Calls to context.execute() here emit the given string to the
+    script output.
+
+    """
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode.
+
+    In this scenario we need to create an Engine
+    and associate a connection with the context.
+
+    """
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, target_metadata=target_metadata
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+
 
 
 =======================================
@@ -590,6 +797,7 @@ to create user_table.py inside alembic/version
 =======================================
 alembic init alembic
 alembic revision -m "user_table" 
+alembic revision -m "userType_enum column to users.py"
 alembic upgrade head
 then use SELECT * FROM backend_db.alembic_version; to check it in mysql workbench
 
@@ -605,13 +813,17 @@ run this DESC users; inside workbench to verify
 ============================
 to add column gender using alembic
 ============================
+alembic revision -m "add gender enum column to users"
+
+--- revision -m "add Usertype enum column to users"
+
 Open the new file (something like b3c5d6_add_gender_enum_column_to_users.py)
 and replace the functions with this:
 
 def upgrade() -> None:
     op.add_column(
         'users',
-        sa.Column('gender', sa.Enum('Male', 'Female', name='gender_enum'), nullable=True)
+        sa.Column('gender', sa.Enum('Male', 'Female', name='gender_enum'), nullable=False)
     )
 
 
@@ -619,12 +831,104 @@ def downgrade() -> None:
     op.drop_column('users', 'gender')
     op.execute('DROP TYPE gender_enum')
 
+
+
+
+def upgrade() -> None:
+    op.add_column(
+        'users',
+        sa.Column('userType', sa.Enum('student', 'Admin', name='userType_enum'), nullable=False)
+    )
+
+
+def downgrade() -> None:
+    op.drop_column('users', 'userType')
+    op.execute('DROP TYPE userType_enum')
+
+
 then 
 
 alembic upgrade head
 
 
 
+ yemi@gmail.com",
+  "password": "adeola121"
+
+{
+  "name": "Yemi Makinde",
+  "email": "makinde@gmail.com",
+  "password": "yemi121",
+  "userType": "student",
+  "gender": "male"
+}
+
+  "name": "Adeyemi makinde",
+  "email": "okema@gmail.com",
+  "password": "ade141",
+  "userType": "Admin",
+  "gender": "male"
+
+{
+  "name": "Sherif Oke",
+  "email": "oke@gmail.com",
+  "password": "ade121",
+  "userType": "student",
+  "gender": "male"
+}
+
+===================
+middleware.py
+===================
+
+import jwt
+from dotenv import load_dotenv
+import os
+from datetime import datetime, timedelta
+from fastapi import Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Security
+from jwt import ExpiredSignatureError, DecodeError
+from fastapi import HTTPException
+
+bearer = HTTPBearer()
+
+load_dotenv()
+
+secret_key = os.getenv("secret_key")
+
+def create_token(details: dict, expiry:int):
+    expiry = datetime.now() + timedelta(minutes=expiry)
+
+    details.update({"exp": expiry})
+
+    encoded_jwt = jwt.encode(details, secret_key, algorithm="HS256")
+
+    return encoded_jwt
+
+
+def verify_token(request: HTTPAuthorizationCredentials = Security(bearer)):
+    token = request.credentials
+    print(f"Incoming Token: {token}")
+
+    try:
+        verified_token = jwt.decode(token, secret_key, algorithms=["HS256"])
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except DecodeError:
+        raise HTTPException(status_code=401, detail="Invalid or corrupted token")
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
+
+    return {
+        "email": verified_token.get("email"),
+        "userType": verified_token.get("userType"),
+        "user_id": verified_token.get("user_id")
+    }
+
+=====================================================================
+Postman
+=====================================================================
 
 ============
 put.py
