@@ -1,0 +1,14 @@
+{
+  "original_shape": [
+    500,
+    12
+  ],
+  "final_shape": [
+    500,
+    58
+  ],
+  "train_samples": 300,
+  "val_samples": 100,
+  "test_samples": 100,
+  "scaling_method": "StandardScaler"
+}
