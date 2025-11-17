@@ -1,0 +1,41 @@
+{
+  "original_shape": [
+    593994,
+    14
+  ],
+  "final_shape": [
+    593994,
+    68
+  ],
+  "selected_features": [
+    "debt_to_income_ratio",
+    "credit_score",
+    "annual_income",
+    "annual_income_log",
+    "debt_to_income_ratio_log",
+    "high_debt_ratio",
+    "loan_to_income",
+    "risk_score",
+    "income_bracket",
+    "credit_interest_interaction"
+  ],
+  "engineered_features": [
+    "debt_to_income_ratio_log",
+    "credit_score",
+    "risk_score",
+    "credit_interest_interaction",
+    "income_bracket",
+    "annual_income",
+    "annual_income_log",
+    "loan_to_income"
+  ],
+  "train_samples": 356396,
+  "val_samples": 118799,
+  "test_samples": 118799,
+  "scaling_method": "StandardScaler",
+  "outlier_treatment": "IQR_capping",
+  "log_transformed": [
+    "annual_income_log",
+    "debt_to_income_ratio_log"
+  ]
+}
